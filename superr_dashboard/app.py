@@ -9,12 +9,28 @@ st.set_page_config(page_title='SupeRR Selector', page_icon='🏏', layout='wide'
 
 PURPLE='#3B1765'; PINK='#E8287D'; LAV='#F1E7FA'; GOLD='#F5B841'; DARK='#241233'
 
+# Force a readable light theme even when the system/browser uses dark mode.
 st.markdown(f'''<style>
-.stApp {{ background: linear-gradient(135deg, #fff8fc 0%, #f4ecfb 100%); }}
-h1,h2,h3 {{ color:{PURPLE}; }}
-[data-testid="stMetricValue"] {{ color:{PINK}; }}
+:root {{ color-scheme: light !important; }}
+html, body, [data-testid="stAppViewContainer"], .stApp {{ background: linear-gradient(135deg, #FFF8FC 0%, #F4ECFB 100%) !important; color: {DARK} !important; }}
+[data-testid="stHeader"] {{ background: rgba(255,255,255,0) !important; }}
+[data-testid="stSidebar"] {{ background: #F1E7FA !important; }}
+[data-testid="stSidebar"] * {{ color: {DARK} !important; }}
+h1,h2,h3,h4,p,li,span,label {{ color: {DARK} !important; }}
+h1,h2,h3 {{ color: {PURPLE} !important; }}
+[data-testid="stMetricValue"] {{ color: {PINK} !important; }}
+[data-testid="stMetricLabel"] {{ color: {DARK} !important; }}
+.stAlert {{ background-color: #FFF0F7 !important; color: {DARK} !important; border: 1px solid #E8287D33 !important; }}
+[data-baseweb="select"] > div, [data-baseweb="input"] > div {{ background-color: #FFFFFF !important; color: {DARK} !important; border-color: #C8A8E8 !important; }}
 .block-container {{ padding-top: 1.2rem; }}
 </style>''', unsafe_allow_html=True)
+
+PLOTLY_LAYOUT = dict(
+    paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font=dict(color=DARK),
+    title_font=dict(color=PURPLE),
+    xaxis=dict(gridcolor='#E8DDF2', zerolinecolor='#E8DDF2', title_font=dict(color=DARK), tickfont=dict(color=DARK)),
+    yaxis=dict(gridcolor='#E8DDF2', zerolinecolor='#E8DDF2', title_font=dict(color=DARK), tickfont=dict(color=DARK)),
+)
 
 @st.cache_data
 def load_data():
@@ -54,7 +70,7 @@ def radar(df, player, role):
         lo,hi=s.min(),s.max()
         norm.append(50 if pd.isna(lo) or hi==lo else 100*(v-lo)/(hi-lo))
     fig=go.Figure(go.Scatterpolar(r=norm+[norm[0]],theta=labels+[labels[0]],fill='toself',name=player,line_color=PINK))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True,range=[0,100])),showlegend=False,height=420,margin=dict(l=30,r=30,t=30,b=30))
+    fig.update_layout(polar=dict(bgcolor='#FFFFFF',radialaxis=dict(visible=True,range=[0,100],gridcolor='#E8DDF2',tickfont=dict(color=DARK)),angularaxis=dict(gridcolor='#E8DDF2',tickfont=dict(color=DARK))),paper_bgcolor='#FFFFFF',font=dict(color=DARK),showlegend=False,height=420,margin=dict(l=30,r=30,t=30,b=30))
     return fig
 
 if page=='Overview':
@@ -80,7 +96,7 @@ elif page in ['Batters','Bowlers']:
     st.dataframe(rank_table(view,role).head(top_n),use_container_width=True,hide_index=True)
     if len(view):
         fig=px.bar(view.head(top_n).sort_values('final_score'),x='final_score',y='player',orientation='h',text='rank',color='reliability',color_continuous_scale='RdPu',labels={'final_score':'Final Score','player':'Player','reliability':'Reliability'})
-        fig.update_layout(height=max(400,35*top_n),coloraxis_colorbar_title='Reliability')
+        fig.update_layout(height=max(400,35*top_n),coloraxis_colorbar_title='Reliability',**PLOTLY_LAYOUT)
         st.plotly_chart(fig,use_container_width=True)
     st.markdown('### Player profile')
     player=st.selectbox('Select a player',view.sort_values('rank').player.tolist())
@@ -111,6 +127,7 @@ elif page=='Player Comparison':
         else: keys=['pressure_perf_z','threat_z','control_z','baseline_z','consistency_z']
         comp=rows[keys].T.reset_index().melt(id_vars='index',var_name='Player',value_name='Score')
         fig=px.bar(comp,x='index',y='Score',color='Player',barmode='group',labels={'index':'Dimension'})
+        fig.update_layout(**PLOTLY_LAYOUT)
         st.plotly_chart(fig,use_container_width=True)
 
 else:
